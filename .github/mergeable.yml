@@ -1,0 +1,48 @@
+version: 2
+mergeable:
+  - when: pull_request.opened
+    name: "Greet a contributor"
+    validate: []
+    pass:
+      - do: comment
+        payload:
+          body: >
+            Thanks for creating a pull request! Please be sure you have reviewed our [Contribution Guidelines](../blob/master/docs/CONTRIBUTING.md).
+  - when: pull_request.*, pull_request_review.*
+    validate:
+      - do: title
+        # Enforce semantic release convention.
+        must_include:
+          regex: ^(feat|docs|chore|fix|refactor|test|style|perf)(\(\w+\))?:.+$
+          message: Semantic release conventions must be followed.
+        # All todo check boxes must be checked.
+      - do: title
+        must_include:
+          regex: ^(.+-\d*|feat|docs|chore|fix|refactor|test|style|perf|-\d*):\s.+$
+          message: Semantic release conventions must be followed.
+      - do: label
+        no_empty:
+          enabled: false
+          message: 'Please assign a label that defines the status of the Pull Request.'
+        must_exclude:
+          regex: 'work in progress|WIP|draft'
+          regex_flag: 'none'
+          message: 'Work in progress Pull Requests cannot be merged.'
+      - do: description
+        no_empty:
+          enabled: true
+          message: Description matter and should not be empty. Provide detail about your contribution and the changes associated.
+    pass:
+      - do: merge
+        merge_method: 'squash'
+      - do: checks
+        status: 'success'
+  - when: schedule.repository
+    validate:
+      - do: stale
+        days: 30
+        type: pull_request, issues
+    pass:
+      - do: comment
+        payload:
+          body: This Pull Request has not been updated in a while. Is it still relevant?
